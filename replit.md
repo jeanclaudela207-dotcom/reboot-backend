@@ -45,11 +45,20 @@ The sign-in button is rendered by including the Replit Auth script:
 | `GET /dashboard` | Auth required | Shows user profile info from Replit Auth headers |
 | `GET /logout` | Auth required | Clears session and redirects home |
 
+## Database
+
+SQLite via `better-sqlite3`. Path is controlled by the `DB_PATH` env var (default `./data/store.db`). The `data/` directory is created automatically on first run.
+
+On each authenticated request the user is upserted into the `users` table, so the database always reflects who has visited and when.
+
+Schema lives in `db.js`.
+
 ## Environment secrets
 
 | Secret | Required | Description |
 |---|---|---|
 | `SESSION_SECRET` | Yes (in production) | Secret for signing session cookies |
+| `DB_PATH` | No | SQLite file path (default `./data/store.db`) |
 
 ## User preferences
 

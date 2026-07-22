@@ -2,6 +2,7 @@ const express = require('express');
 const session = require('express-session');
 const { getUserInfo } = require('@replit/repl-auth');
 const path = require('path');
+const { upsertUser, getUser, listUsers } = require('./db');
 
 const app = express();
 const PORT = 5000;
@@ -17,9 +18,18 @@ app.use(session({
 // Static files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Make user available in all templates
+// Make user available in all templates; persist to DB on every authed request
 app.use((req, res, next) => {
-  res.locals.user = getUserInfo(req);
+  const user = getUserInfo(req);
+  if (user) {
+    upsertUser({
+      id:           user.id,
+      name:         user.name,
+      profileImage: user.profileImage || null,
+      bio:          user.bio || null,
+    });
+  }
+  res.locals.user = user;
   next();
 });
 
@@ -72,6 +82,10 @@ app.get('/', (req, res) => {
 app.get('/dashboard', requireAuth, (req, res) => {
   const user = res.locals.user;
   const roles = (user.roles || []).join(', ') || 'none';
+  const record = getUser(user.id);
+  const firstSeen = record
+    ? new Date(record.first_seen * 1000).toLocaleString()
+    : '—';
 
   res.send(renderPage({
     title: 'Dashboard',
@@ -85,6 +99,7 @@ app.get('/dashboard', requireAuth, (req, res) => {
           <tr><th>User ID</th><td>${escHtml(user.id)}</td></tr>
           <tr><th>Roles</th><td>${escHtml(roles)}</td></tr>
           ${user.bio ? `<tr><th>Bio</th><td>${escHtml(user.bio)}</td></tr>` : ''}
+          <tr><th>First seen</th><td>${escHtml(firstSeen)}</td></tr>
         </table>
 
         <div class="actions">
